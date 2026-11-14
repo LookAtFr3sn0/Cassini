@@ -1,0 +1,27 @@
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: cassini-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cassini}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cassini}
+      POSTGRES_DB: ${POSTGRES_DB:-cassini}
+    restart: unless-stopped
+    networks:
+      - db
+    volumes:
+      - db_data:/var/lib/postgresql
+  
+  backend:
+    build:
+      context: ./server
+    container_name: cassini-backend
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-cassini}:${POSTGRES_PASSWORD:-cassini}@db:5432/${POSTGRES_DB:-cassini}
+
+networks:
+  db:
+    driver: bridge
+
+volumes:
+  db_data:
