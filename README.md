@@ -59,7 +59,7 @@ docker compose up -d
 
 ## Tech stack
 * **Frontend**: TBD
-* **Backend**: Node, TypeScript
+* **Backend**: Node, TypeScript, Fastify
 * **Database**: PostgreSQL
 * **Tests**: Vitest
 * **Deployment**: Docker

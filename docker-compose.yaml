@@ -6,6 +6,12 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-cassini}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cassini}
       POSTGRES_DB: ${POSTGRES_DB:-cassini}
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-cassini}", "-d", "${POSTGRES_DB:-cassini}"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
     networks:
       - db
@@ -18,6 +24,14 @@ services:
     container_name: cassini-backend
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-cassini}:${POSTGRES_PASSWORD:-cassini}@db:5432/${POSTGRES_DB:-cassini}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - db
+    ports:
+      - "3000:3000"
 
 networks:
   db:
