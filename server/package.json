@@ -2,16 +2,20 @@
   "devDependencies": {
     "@types/node": "^26.6.6",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "@types/pg": "^8.23.1",
+    "drizzle-kit": "^0.31.11"
   },
   "dependencies": {
-    "fastify": "^5.12.8"
+    "drizzle-orm": "^0.45.4",
+    "fastify": "^5.12.8",
+    "pg": "^8.23.1"
   },
   "main": "server.ts",
   "keywords": [],
   "license": "AGPL-3.0-or-later",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/server.ts"
+    "dev": "tsx watch --env-file=.env src/server.ts"
   }
 }
