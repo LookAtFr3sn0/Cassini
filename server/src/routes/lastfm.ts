@@ -3,7 +3,7 @@ import type { Params, Result, Handler } from "../lastfm/shared.js";
 import formbody from "@fastify/formbody";
 import { LastfmError, LastfmErrorCode, escapeXml } from "../lastfm/shared.js";
 import { getMobileSession } from "../lastfm/auth.js";
-
+import { updateNowPlaying } from "../lastfm/track.js";
 
 function notImplemented(name: string): Handler {
     return async () => {
@@ -13,7 +13,7 @@ function notImplemented(name: string): Handler {
 
 const handlers: Record<string, Handler> = {
     "auth.getMobileSession": getMobileSession,
-    "track.updateNowPlaying": notImplemented("track.updateNowPlaying"),
+    "track.updateNowPlaying": updateNowPlaying,
     "track.scrobble": notImplemented("track.scrobble")
 };
 
