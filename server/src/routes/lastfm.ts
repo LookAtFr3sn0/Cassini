@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import type { Params, Result, Handler } from "../lastfm/shared.js";
 import formbody from "@fastify/formbody";
 import { LastfmError, LastfmErrorCode, escapeXml } from "../lastfm/shared.js";
+import { getMobileSession } from "../lastfm/auth.js";
 
 
 function notImplemented(name: string): Handler {
@@ -11,7 +12,7 @@ function notImplemented(name: string): Handler {
 }
 
 const handlers: Record<string, Handler> = {
-    "auth.getMobileSession": notImplemented("auth.getMobileSession"),
+    "auth.getMobileSession": getMobileSession,
     "track.updateNowPlaying": notImplemented("track.updateNowPlaying"),
     "track.scrobble": notImplemented("track.scrobble")
 };

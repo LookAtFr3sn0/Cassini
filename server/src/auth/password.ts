@@ -1,5 +1,4 @@
-import { randomBytes, argon2, timingSafeEqual} from "node:crypto";
-import type { Argon2Parameters } from "node:crypto";
+import { randomBytes, argon2, timingSafeEqual, type Argon2Parameters } from "node:crypto";
 import { promisify } from "node:util";
 
 const argon2Async = promisify(argon2);
