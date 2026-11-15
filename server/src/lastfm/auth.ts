@@ -2,7 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { apiTokens, users } from "../db/schema.js";
-import { verifyPassword } from "../auth/password.js";
+import { hashPassword, verifyPassword } from "../auth/password.js";
 import { LastfmError, LastfmErrorCode, type Handler, type Params } from "../lastfm/shared.js";
 
 const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
@@ -17,7 +17,9 @@ export const getMobileSession: Handler = async (params: Params) => {
         .select()
         .from(users)
         .where(sql`lower(${users.username}) = ${username.toLowerCase()}`);
-    if (!user || !(await verifyPassword(password, user.passwordHash))) {
+    const DUMMY_HASH = await hashPassword(randomBytes(16).toString("hex"));
+    const ok = await verifyPassword(password, user?.passwordHash ?? DUMMY_HASH);
+    if (!user || !ok) {
         throw new LastfmError(LastfmErrorCode.AuthenticationFailed, "Invalid username or password");
     }
 

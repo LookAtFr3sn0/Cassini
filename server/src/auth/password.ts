@@ -38,6 +38,11 @@ export async function verifyPassword(password: string, stored: string): Promise<
         parallelism: parseInt(parallelism!),
         tagLength: expected.length,
     }
-    const actual = await argon2Async("argon2id", hashParameters);
-    return timingSafeEqual(expected, actual); 
+    if (expected.length < 4) return false;
+    try {
+        const actual = await argon2Async("argon2id", hashParameters);
+        return timingSafeEqual(expected, actual); 
+    } catch {
+        return false;
+    }
 }
