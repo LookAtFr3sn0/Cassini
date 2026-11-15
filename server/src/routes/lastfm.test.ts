@@ -40,6 +40,11 @@ describe("POST /2.0/", () => {
         expect(response.json()).toMatchObject({ error: 6 });
     });
 
+    it("rejects parameters that are too long", async () => {
+        const response = await post(`method=track.updateNowPlaying&artist=${"a".repeat(1025)}&track=b&format=json`);
+        expect(response.json()).toMatchObject({ error: 6 });
+    });
+
     it("works without the trailing slash and with GET", async () => {
         expect((await post("method=none&format=json", "/2.0")).statusCode).toBe(400);
         const get = await app.inject({ method: "GET", url: "/2.0/?method=none&format=json" });

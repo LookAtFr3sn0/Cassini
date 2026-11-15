@@ -53,8 +53,12 @@ export async function lastfmRoutes(app: FastifyInstance) {
                     const result = await handler(params);
                     return send(reply, wantsJson, 200, result);
                 } catch (err) {
-                    if (!(err instanceof LastfmError)) throw err;
-                    return send(reply, wantsJson, 400, { error: err.code, message: err.message }, { error: { code: err.code, "#text": err.message } });
+                    if (!(err instanceof LastfmError)) {
+                        request.log.error(err);
+                        err = new LastfmError(LastfmErrorCode.ServiceTemporarilyUnavailable, "Service temporarily unavailable");
+                    }
+                    const e = err as LastfmError;
+                    return send(reply, wantsJson, e.code === LastfmErrorCode.ServiceTemporarilyUnavailable ? 503 : 400, { error: e.code, message: e.message }, { error: { code: e.code, "#text": e.message } })
                 }
             }
         });

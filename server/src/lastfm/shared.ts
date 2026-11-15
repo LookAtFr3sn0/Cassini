@@ -10,6 +10,7 @@ export const LastfmErrorCode = {
     InvalidParameters: 6,
     InvalidSessionKey: 9,
     InvalidSignature: 13,
+    ServiceTemporarilyUnavailable: 16,
 } as const;
 
 export class LastfmError extends Error {

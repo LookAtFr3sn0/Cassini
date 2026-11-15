@@ -4,6 +4,8 @@ import { albums, artists, nowPlaying, tracks } from "../db/schema.js";
 import { requireSession } from "./auth.js";
 import { LastfmError, LastfmErrorCode, type Handler } from "./shared.js";
 
+const MAX_NAME_LENGTH = 1024;
+
 export const normalize = (value: string) => value.normalize("NFKC").trim().replace(/\s+/g, " ").toLowerCase();
 
 export async function findOrCreateArtist(name: string) {
@@ -36,7 +38,8 @@ export async function findOrCreateAlbum(artistId: number, title: string) {
 export const updateNowPlaying: Handler = async (params) => {
     const userId = await requireSession(params);
     const { artist, track, album, albumArtist, duration } = params;
-    if (!artist?.trim() || !track?.trim()) {
+    const tooLong = [artist, track, album, albumArtist].some((value) => (value?.length ?? 0) > MAX_NAME_LENGTH);
+    if (tooLong || !artist?.trim() || !track?.trim()) {
         throw new LastfmError(LastfmErrorCode.InvalidParameters, "Missing required parameters");
     }
 
@@ -46,8 +49,9 @@ export const updateNowPlaying: Handler = async (params) => {
     const albumId = album?.trim() ? await findOrCreateAlbum(albumArtistId, album) : null;
 
     const seconds = Number(duration);
+    const isValidDuration = !Number.isNaN(seconds) && Number.isFinite(seconds) && seconds >= 0 && seconds <= 24 * 60 * 60;
     const startedAt = new Date();
-    const expiresAt = new Date(startedAt.getTime() + (seconds > 0 ? seconds : 600) * 1000);
+    const expiresAt = new Date(startedAt.getTime() + (isValidDuration ? seconds : 600) * 1000);
 
     const row = { trackId, albumId, startedAt, expiresAt };
 
