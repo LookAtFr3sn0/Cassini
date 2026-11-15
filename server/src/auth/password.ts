@@ -7,7 +7,7 @@ const argon2Async = promisify(argon2);
 const parameters: Argon2Parameters = {
     message: "password",
     nonce: randomBytes(16),
-    parallelism: 4,
+    parallelism: 2,
     tagLength: 32,
     memory: 1<<16,
     passes: 1,
