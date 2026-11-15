@@ -7,6 +7,8 @@ import { LastfmError, LastfmErrorCode, type Handler, type Params } from "../last
 
 const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 
+const dummyHash = hashPassword(randomBytes(16).toString("hex"));
+
 export const getMobileSession: Handler = async (params: Params) => {
     const { username, password } = params;
     if (!username || !password) {
@@ -17,8 +19,7 @@ export const getMobileSession: Handler = async (params: Params) => {
         .select()
         .from(users)
         .where(sql`lower(${users.username}) = ${username.toLowerCase()}`);
-    const DUMMY_HASH = await hashPassword(randomBytes(16).toString("hex"));
-    const ok = await verifyPassword(password, user?.passwordHash ?? DUMMY_HASH);
+    const ok = await verifyPassword(password, user?.passwordHash ?? await dummyHash);
     if (!user || !ok) {
         throw new LastfmError(LastfmErrorCode.AuthenticationFailed, "Invalid username or password");
     }
