@@ -37,10 +37,13 @@ export async function lastfmRoutes(app: FastifyInstance) {
                     ...(request.query as Params),
                     ...(request.body as Params | undefined)
                 };
+                if (Object.values(params).some((value) => typeof value !== "string")) {
+                    throw new LastfmError(LastfmErrorCode.InvalidParameters, "Invalid parameters");
+                }
                 const wantsJson = params.format === "json";
-
                 try {
-                    const handler = handlers[(params.method ?? "")];
+                    const method = params.method ?? "";
+                    const handler = Object.hasOwn(handlers, method) ? handlers[method] : undefined;
                     if (!handler) {
                         throw new LastfmError(LastfmErrorCode.InvalidMethod, "Invalid method");
                     }
