@@ -3,7 +3,7 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { apiTokens, users } from "../db/schema.js";
 import { verifyPassword } from "../auth/password.js";
-import { escapeXml, LastfmError, LastfmErrorCode, type Handler, type Params } from "../lastfm/shared.js";
+import { LastfmError, LastfmErrorCode, type Handler, type Params } from "../lastfm/shared.js";
 
 const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 
@@ -29,10 +29,7 @@ export const getMobileSession: Handler = async (params: Params) => {
         name: "Last.fm client",
     });
 
-    return {
-        json: { session: { name: user.username, key, subscriber: 0 } },
-        xml: `<session><name>${escapeXml(user.username)}</name><key>${key}</key><subscriber>0</subscriber></session>`,
-    };
+    return { session: { name: user.username, key, subscriber: 0 } };
 };
 
 export async function requireSession(params: Params) {

@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { albums, artists, nowPlaying, tracks } from "../db/schema.js";
 import { requireSession } from "./auth.js";
-import { escapeXml, LastfmError, LastfmErrorCode, type Handler } from "./shared.js";
+import { LastfmError, LastfmErrorCode, type Handler } from "./shared.js";
 
 export const normalize = (value: string) => value.normalize("NFKC").trim().replace(/\s+/g, " ").toLowerCase();
 
@@ -57,18 +57,14 @@ export const updateNowPlaying: Handler = async (params) => {
         .onConflictDoUpdate({ target: nowPlaying.userId, set: row });
 
     const field = (value: string | undefined) => ({ "#text": value ?? "", corrected: "0" });
-    const tag = (name: string, value: string | undefined) => `<${name} corrected="0">${escapeXml(value ?? "")}</${name}>`;
 
     return {
-        json: {
-            nowplaying: {
-                artist: field(artist),
-                track: field(track),
-                album: field(album),
-                albumArtist: field(albumArtist),
-                ignoreMessage: { code: "0", "#text": "" },
-            },
+        nowplaying: {
+            artist: field(artist),
+            track: field(track),
+            album: field(album),
+            albumArtist: field(albumArtist),
+            ignoredMessage: { code: "0", "#text": "" },
         },
-        xml: `<nowplaying>${tag("track", track)}${tag("artist", artist)}${tag("album", album)}${tag("albumArtist", albumArtist)}</nowplaying>`,
     };
 };

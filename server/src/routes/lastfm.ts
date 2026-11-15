@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import type { Params, Result, Handler } from "../lastfm/shared.js";
 import formbody from "@fastify/formbody";
-import { LastfmError, LastfmErrorCode, escapeXml } from "../lastfm/shared.js";
+import { LastfmError, LastfmErrorCode, toXml } from "../lastfm/shared.js";
 import { getMobileSession } from "../lastfm/auth.js";
 import { updateNowPlaying } from "../lastfm/track.js";
 
@@ -17,12 +17,15 @@ const handlers: Record<string, Handler> = {
     "track.scrobble": notImplemented("track.scrobble")
 };
 
-function send(reply: FastifyReply, wantsJson: boolean, status: number, result: Result) {
-    if (wantsJson) return reply.code(status).send(result.json);
+function send(reply: FastifyReply, wantsJson: boolean, status: number, json: Result, xmlSource: Result = json) {
+    if (wantsJson) {
+        return reply.code(status).send(json);
+    }
+    const body = Object.entries(xmlSource).map(([key, value]) => toXml(key, value)).join("");
     return reply
         .code(status)
         .type("text/xml; charset=utf-8")
-        .send(`<?xml version="1.0" encoding="utf-8"?>\n${result.xml}`);
+        .send(`<?xml version="1.0" encoding="utf-8"?>\n<lfm status="${status === 200 ? "ok" : "failed"}">${body}</lfm>`);
 }
 
 export async function lastfmRoutes(app: FastifyInstance) {
@@ -37,27 +40,21 @@ export async function lastfmRoutes(app: FastifyInstance) {
                     ...(request.query as Params),
                     ...(request.body as Params | undefined)
                 };
-                if (Object.values(params).some((value) => typeof value !== "string")) {
-                    throw new LastfmError(LastfmErrorCode.InvalidParameters, "Invalid parameters");
-                }
                 const wantsJson = params.format === "json";
                 try {
+                    if (Object.values(params).some((value) => typeof value !== "string")) {
+                        throw new LastfmError(LastfmErrorCode.InvalidParameters, "Invalid parameters");
+                    }
                     const method = params.method ?? "";
                     const handler = Object.hasOwn(handlers, method) ? handlers[method] : undefined;
                     if (!handler) {
                         throw new LastfmError(LastfmErrorCode.InvalidMethod, "Invalid method");
                     }
                     const result = await handler(params);
-                    return send(reply, wantsJson, 200, {
-                        json: result.json,
-                        xml: `<lfm status="ok">${result.xml}</lfm>`
-                    });
+                    return send(reply, wantsJson, 200, result);
                 } catch (err) {
                     if (!(err instanceof LastfmError)) throw err;
-                    return send(reply, wantsJson, 400, {
-                        json: { error: err.code, message: err.message },
-                        xml: `<lfm status="failed"><error code="${err.code}">${escapeXml(err.message)}</error></lfm>`
-                    });
+                    return send(reply, wantsJson, 400, { error: err.code, message: err.message }, { error: { code: err.code, "#text": err.message } });
                 }
             }
         });

@@ -57,17 +57,16 @@ describe("getMobileSession", () => {
     it("returns a session key for the right password", async () => {
         state.rows.set(users, [user]);
         const result = await getMobileSession({ username: user.username, password: PASSWORD });
-        const { session } = result.json as { session: { name: string; key: string; subscriber: number } };
+        const { session } = result as { session: { name: string; key: string; subscriber: number } };
 
         expect(session.name).toBe(user.username);
         expect(session.key).toMatch(/^[0-9a-f]{32}$/);
-        expect(result.xml).toContain(`<key>${session.key}</key>`);
     });
 
     it("stores the hash of the key and never the key itself", async () => {
         state.rows.set(users, [user]);
         const result = await getMobileSession({ username: user.username, password: PASSWORD });
-        const { key } = (result.json as { session: { key: string } }).session;
+        const { key } = (result as { session: { key: string } }).session;
 
         expect(state.inserted).toHaveLength(1);
         expect(state.inserted[0]).toMatchObject({
