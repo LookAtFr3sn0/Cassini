@@ -1,5 +1,6 @@
 {
   "devDependencies": {
+    "@testcontainers/postgresql": "^12.2.1",
     "@types/node": "^26.6.6",
     "@types/pg": "^8.23.1",
     "drizzle-kit": "^0.31.11",
@@ -19,7 +20,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch --env-file=.env src/server.ts",
-    "test": "vitest run",
+    "test": "vitest run src",
+    "test:integration": "vitest run tests",
     "test:watch": "vitest"
   }
 }
