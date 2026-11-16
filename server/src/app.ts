@@ -3,6 +3,7 @@ import { lastfmRoutes } from "./routes/lastfm.js";
 import { signupRoutes } from "./routes/signup.js";
 import { tokenRoutes } from "./routes/tokens.js";
 import { listenbrainzRoutes } from "./routes/listenbrainz.js";
+import { statsRoutes } from "./routes/stats.js";
 
 export async function buildApp(options: FastifyServerOptions = {}) {
     const app = Fastify(options);
@@ -11,5 +12,6 @@ export async function buildApp(options: FastifyServerOptions = {}) {
     await app.register(signupRoutes);
     await app.register(tokenRoutes);
     await app.register(listenbrainzRoutes);
+    await app.register(statsRoutes);
     return app;
 }

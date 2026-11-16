@@ -1,9 +1,8 @@
-import type { FastifyInstance, FastifyRequest } from "fastify";
-import { and, eq, isNull } from "drizzle-orm";
+import type { FastifyInstance } from "fastify";
 import { db } from "../db/index.js";
-import { apiTokens, nowPlaying, scrobbles, users } from "../db/schema.js";
-import { hashToken } from "../lastfm/auth.js";
+import { nowPlaying, scrobbles } from "../db/schema.js";
 import { resolveTrack, tooLong } from "../lastfm/track.js";
+import { findUserByHeader } from "../auth/tokens.js";
 
 const MAX_LISTENS = 1000;
 
@@ -39,27 +38,14 @@ const body = {
 type Listen = { listened_at?: number; track_metadata: { artist_name: string; track_name: string; release_name?: string } };
 type SubmitBody = { listen_type: "single" | "playing_now" | "import"; payload: Listen[] };
 
-async function findUserByToken(request: FastifyRequest) {
-    const token = /^Token\s+(\S+)$/i.exec(request.headers.authorization ?? "")?.[1];
-    if (!token) return undefined;
-
-    const [user] = await db
-        .select({ id: users.id, username: users.username })
-        .from(apiTokens)
-        .innerJoin(users, eq(users.id, apiTokens.userId))
-        .where(and(eq(apiTokens.tokenHash, hashToken(token)), eq(apiTokens.kind, "listenbrainz"), isNull(apiTokens.revokedAt)));
-    
-    return user;
-}
-
-export async function listenbrainzRoutes(app: FastifyInstance) {
+export function listenbrainzRoutes(app: FastifyInstance) {
     app.get("/1/validate-token", async (request, reply) => {
-        const user = await findUserByToken(request);
+        const user = await findUserByHeader(request, "Token", "listenbrainz");
         return user ? { code: 200, message: "Valid token", valid: true, user_name: user.username} : { code: 200, message: "Invalid token", valid: false };
     });
 
     app.post<{ Body: SubmitBody }>("/1/submit-listens", { schema: { body }, bodyLimit: 10 * 1024 * 1024 }, async (request, reply) => {
-        const user = await findUserByToken(request);
+        const user = await findUserByHeader(request, "Token", "listenbrainz");
         if (!user) {
             return reply.code(401).send({ code: 401, error: "Invalid token" });
         }
