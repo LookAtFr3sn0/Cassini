@@ -50,4 +50,10 @@ describe("POST /2.0/", () => {
         const response = await post("method=track.updateNowPlaying&artist=a&track=b&format=json");
         expect(response.json()).toMatchObject({ error: 9 });
     });
-})
+
+    it("turns unexpected errors into Last.fm error 16", async () => {
+        const response = await post("method=track.updateNowPlaying&sk=11111111-1111-4111-8111-111111111111&artist=a&track=b&format=json");
+        expect(response.statusCode).toBe(503);
+        expect(response.json()).toMatchObject({ error: 16 });
+    });
+});
