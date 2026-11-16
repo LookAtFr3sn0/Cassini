@@ -4,11 +4,13 @@ import formbody from "@fastify/formbody";
 import { LastfmError, LastfmErrorCode, toXml } from "../lastfm/shared.js";
 import { getMobileSession } from "../lastfm/auth.js";
 import { scrobble, updateNowPlaying } from "../lastfm/track.js";
+import { getRecentTracks } from "../lastfm/user.js";
 
 const handlers: Record<string, Handler> = {
     "auth.getMobileSession": getMobileSession,
     "track.updateNowPlaying": updateNowPlaying,
     "track.scrobble": scrobble,
+    "user.getRecentTracks": getRecentTracks,
 };
 
 function send(reply: FastifyReply, wantsJson: boolean, status: number, json: Result, xmlSource: Result = json) {
