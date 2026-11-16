@@ -33,9 +33,25 @@ You can use the official hosted instance or run your own.
 |Core stats|&check;|&check;|&check;|
 |Advanced stats|&check;|Last 12 months|&check;|
 |Recommendations|Built-in open engine|Cassini Discovery, weekly|Cassini Discovery, daily / on-demand|
+|API rates|Unlimited¹|Low|High|
 |Discovery modes|Basic|Basic|All|
 |Groups & leaderboards|Unlimited|1 group|TBD|
 |Recap|&check;|Monthly and yearly|&check;|
+
+¹ Self-hosted instances have no limit on recommendation API requests, other than the ones the owner sets.
+
+## Recommendations API
+> Draft, will change before v1.0
+
+Authenticated with a per user API token
+`(Authorization: Bearer <token>)`
+
+|Request|Returns|
+|-|-|
+|`GET /api/v1/recommendations/sources`|The engines this instance offers, with the discovery modes each one supports|
+|`GET /api/v1/recommendations?source=builtin&mode=similar&limit=50`|Recommended tracks from the chosen engine. `source` falls back to the instance default|
+
+Each track has `artist`, `title`, `album`, `mbid` when known, a `score` from 0 to 1, and a short `reason`.  An unknown `source` or a `mode` the engine doesn't support is a 400.
 
 ## Self-hosting
 > Installation instructions will be finalized before the first release
@@ -51,11 +67,11 @@ docker compose up -d
 ### Key configuration
 |Variable|Purpose|Default|
 |-|-|-|
-|SINGLE_USER|Disables public signup for personal instances|`True`|
 |LASTFM_API_KEY|Needed for Last.fm history import|None|
-|RECOMMENDATIONS_ENABLED|Turns recommendations on or off|`True`|
-|RECOMMENDER_URL|Recommendation engine to use.  Empty uses the built-in open engine|None|
+|RECOMMENDERS|Extra recommendations engines as `name=url`, comma separated.  The built-in open engine is always available as `builtin`|None|
 |RECOMMENDATIONS_CRON|How often the recommendations are regenerated|`daily`|
+|RECOMMENDATIONS_ENABLED|Turns recommendations on or off|`True`|
+|SINGLE_USER|Disables public signup for personal instances|`True`|
 
 ## Tech stack
 * **Frontend**: TBD
