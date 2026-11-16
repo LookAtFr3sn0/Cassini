@@ -1,6 +1,8 @@
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql"
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { eq } from "drizzle-orm";
+import { apiTokens, users } from "../../src/db/schema.js";
 
 let container: StartedPostgreSqlContainer;
 let app: FastifyInstance;
@@ -9,6 +11,7 @@ let key = "";
 beforeAll(async () => {
     container = await new PostgreSqlContainer("postgres:18-alpine").start();
     process.env.DATABASE_URL = container.getConnectionUri();
+    process.env.SINGLE_USER = "false";
 
     const { migrate } = await import("drizzle-orm/node-postgres/migrator");
     const { db } = await import("../../src/db/index.js");
@@ -34,6 +37,8 @@ const call = async (params: Record<string, string>) => {
     });
     return response.json();
 };
+const total = async (sk = key) => Number((await call({ method: "user.getRecentTracks", sk })).recenttracks["@attr"].total);
+const database = async () => (await import("../../src/db/index.js")).db;
 
 describe("signup, login, scrobble, read back", () => {
     it("signs up and logs in", async () => {
@@ -195,4 +200,207 @@ describe("top lists", () => {
         expect((await top(`genres`)).statusCode).toBe(400);
         expect((await top(`artists?limit=0`)).statusCode).toBe(400);
     });
+
+    it("orders equal counts by name", async () => {
+        const response = await top("tracks?from=1600000150&to=1600000301");
+        expect(response.json().items).toEqual([
+            { artist: "Stats A", track: "Y", plays: 1 },
+            { artist: "Stats B", track: "Z", plays: 1 },
+        ]);
+    })
 });
+
+describe("tokens", () => {
+    const create = (kind: string, password = "testpass") => app.inject({
+        method: "POST",
+        url: "/api/tokens",
+        payload: { username: "testuser", password, kind },
+    });
+    const stats = (authorization: string) => app.inject({
+        method: "GET",
+        url: "/api/v1/stats/top/artists",
+        headers: { authorization },
+    });
+    const validate = async (authorization: string) => (await app.inject({
+        method: "GET",
+        url: "/1/validate-token",
+        headers: { authorization },
+    })).json().valid;
+
+    it("answers the health check", async () => {
+        const response = await create("api", "wrongpass");
+        expect((await app.inject({
+            method: "GET",
+            url: "/health",
+        })).json()).toEqual({ status: "ok" });
+    });
+
+    it("gives no token for a wrong password", async () => {
+        const response = await create("api", "wrongpass");
+        expect(response.statusCode).toBe(401);
+        expect(response.json().token).toBeUndefined();
+    });
+
+    it("only accepts a token on the API it was made for", async () => {
+        const listenbrainz = (await create("listenbrainz")).json().token;
+        const api = (await create("api")).json().token;
+
+        expect((await stats(`Bearer ${api}`)).statusCode).toBe(200);
+        expect((await stats(`Bearer ${listenbrainz}`)).statusCode).toBe(401);
+        expect((await stats(`Token ${api}`)).statusCode).toBe(401);
+        expect(await validate(`Token ${listenbrainz}`)).toBe(true);
+        expect(await validate(`Token ${api}`)).toBe(false);
+        expect(await validate(`Bearer ${listenbrainz}`)).toBe(false);
+    });
+
+    it("refuses a revoked token", async () => {
+        const token = (await create("api")).json().token;
+        const { hashToken } = await import("../../src/lastfm/auth.js");
+        await (await database()).update(apiTokens).set({ revokedAt: new Date() }).where(eq(apiTokens.tokenHash, hashToken(token)));
+
+        expect((await stats(`Bearer ${token}`)).statusCode).toBe(401);
+    });
+});
+
+describe("ListenBrainz endpoint", () => {
+    let headers = {};
+    const listen = (artist_name: string, track_name: string, listened_at?: number, release_name?: string) => ({
+        listened_at,
+        track_metadata: { artist_name, track_name, release_name },
+    });
+    const submit = (listen_type: string, payload: unknown[]) => app.inject({
+        method: "POST",
+        url: "/1/submit-listens",
+        headers,
+        payload: { listen_type, payload },
+    });
+
+    it.beforeAll(async () => {
+        const created = await app.inject({
+            method: "POST",
+            url: "/api/tokens",
+            payload: { username: "testuser", password: "testpass", kind: "listenbrainz" },
+        });
+        headers = { authorization: `Token ${created.json().token}` };
+    });
+
+    it("shows playing_now as now playing without storing a play", async () => {
+        const before = await total();
+        expect((await submit("playing_now", [listen("LB Artist", "LB Now")])).json()).toEqual({ status: "ok" });
+        
+        const recent = await call({ method: "user.getRecentTracks", sk: key });
+        expect(recent.recenttracks.track[0]).toMatchObject({ name: "LB Now", "@attr": { nowplaying: "true" } });
+        expect(await total()).toBe(before);
+    });
+
+    it("stores nothing when one listen of a batch is bad", async () => {
+        const before = await total();
+        const response = await submit("import", [[listen("LB Artist", "Good", 1650000000), listen("LB Artist", "Bad")]]);
+        expect(response.statusCode).toBe(400);
+        expect(await total()).toBe(before);
+    });
+
+    it("stores a repeated listen once", async () => {
+        const before = await total();
+        await submit("single", [listen("LB Artist", "Twice", 1650000100, "LB Album")]);
+        await submit("single", [listen("LB Artist", "Twice", 1650000100, "LB Album")]);
+        expect(await total()).toBe(before + 1);
+    });
+
+    it.each([
+        ["a single listen without a timestamp", "single", [listen("a", "b")]],
+        ["a time far in the future", "single", [listen("a", "b", 9999999999)]],
+        ["a blank artist", "single", [listen(" ", "b", 1650000200)]],
+        ["an unknown listen type", "other", [listen("a", "b", 1650000200)]],
+        ["an empty payload", "single", []],
+        ["too many listens", "import", Array.from({ length: 1001 }, (_, i) => listen("a", "b", 1650000400 + i))]
+    ])("rejects %s", async (_name, type, payload) => {
+        expect((await submit(type, payload)).statusCode).toBe(400);
+    });
+});
+
+describe("a second user", () => {
+    let otherKey = "";
+    let otherHeaders = {};
+    const stats = async (path: string) => (await app.inject({
+        method: "GET",
+        url: `/api/v1/stats/${path}`,
+        headers: otherHeaders,
+    })).json().items;
+
+    it("signs up, logs in and gets a token", async () => {
+        const payload = { username: "otheruser", email: "otheruser@example.com", password: "otherpass" };
+        expect((await app.inject({
+            method: "POST",
+            url: "/api/signup",
+            payload,
+        })).statusCode).toBe(201);
+
+        otherKey = (await call({ method: "auth.getMobileSession", username: "otheruser", password: "otherpass" })).session.key;
+        const created = await app.inject({
+            method: "POST",
+            url: "/api/tokens",
+            payload: { username: "otheruser", password: "otherpass", kind: "api" },
+        });
+        otherHeaders = { authorization: `Bearer ${created.json().token}` };
+    });
+
+    it("sees nothing of the first user", async () => {
+        const recent = await call({
+            method: "user.getRecentTracks",
+            sk: otherKey,
+        });
+        expect(recent.recenttracks["@attr"]).toMatchObject({ user: "otheruser", total: "0" });
+        expect(recent.recenttracks.track).toEqual([]);
+        expect(await stats("top/artists")).toEqual([]);
+        expect(await stats("top/tracks")).toEqual([]);
+        expect(await stats("top/albums")).toEqual([]);
+        expect(await stats("activity")).toEqual([]);
+    });
+
+    it("can store the same play the first user already has", async () => {
+        const before = await total();
+        const result = await call({ method: "track.scrobble", sk: otherKey, artist: "Test Artist", track: "Test Track", albumArtist: "Various Artists", timestamp: "1600001000" });
+        expect(result.scrobbles["@attr"]).toEqual({ accepted: 1, ignored: 0 });
+        expect(await total(otherKey)).toBe(1);
+        expect(await total()).toBe(before);
+    });
+
+    it("files an album under the album artist", async () => {
+        await call({ method: "track.scrobble", sk: otherKey, artist: "Solo", track: "Song", album: "Album", albumArtist: "Various Artists", timestamp: "1600002000" });
+        expect(await stats("top/albums")).toEqual([{ album: "Album", artist: "Various Artists", plays: 1 }]);
+        expect(await stats("top/artists")).toEqual([
+            { artist: "Solo", plays: 1 },
+            { artist: "Test Artist", plays: 1 },
+        ]);
+    });
+});
+
+describe("activity in the user's own timezone", () => {
+    it("puts a late evening UTC play on the next day in a timezone behind UTC", async () => {
+        await (await database()).update(users).set({ timezone: "Europe/Paris" }).where(eq(users.username, "testuser"));
+        await call({
+            method: "track.scrobble",
+            sk: key,
+            "artist[0]": "Zone", "track[0]": "Late", "timestamp[0]": "1615149000",
+            "artist[1]": "Zone", "track[1]": "Noon", "timestamp[1]": "1615159800",
+        });
+        const created = await app.inject({
+            method: "POST",
+            url: "/api/tokens",
+            payload: { username: "testuser", password: "testpass", kind: "api" },
+        });
+        const response = await app.inject({
+            method: "GET",
+            url: "/api/v1/stats/activity?from=1615140000&to=1615160000",
+            headers: { authorization: `Bearer ${created.json().token}` },
+        });
+
+        expect(response.json()).toEqual({
+            bucket: "day",
+            timezone: "Europe/Paris",
+            items: [{ start: "2021-03-07", plays: 1 }, { start: "2021-03-08", plays: 1 }],
+        });
+    });
+})
+
