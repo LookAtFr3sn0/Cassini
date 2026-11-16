@@ -79,7 +79,49 @@ describe("signup, login, scrobble, read back", () => {
         expect(late.recenttracks["@attr"].total).toBe("1");
         expect(late.recenttracks.track.map((track: { date: { uts: string } }) => track.date.uts)).toEqual(["1700000100"]);
     });
+    
     it("rejects a wrong session key", async () => {
         expect(await call({ method: "user.getRecentTracks", sk: "0".repeat(32) })).toMatchObject({ error: 9 });
+    });
+
+    it("accepts listens through the ListenBrainz endpoint", async () => {
+        const created = await app.inject({
+            method: "POST",
+            url: "/api/tokens",
+            payload: { username: "testuser", password: "testpass", kind: "listenbrainz" },
+        });
+        expect(created.statusCode).toBe(201);
+        const headers = { authorization: `Token ${created.json().token}` };
+
+        const valid = await app.inject({ method: "GET", url: "/1/validate-token", headers });
+        expect(valid.json()).toMatchObject({ valid: true, user_name: "testuser" });
+
+        const submit = await app.inject({
+            method: "POST",
+            url: "/1/submit-listens",
+            headers,
+            payload: {
+                listen_type: "single",
+                payload: [{ listened_at: 1700000200, track_metadata: { artist_name: "Test Artist", track_name: "Another Track" } }],
+            },
+        });
+        expect(submit.json()).toEqual({ status: "ok" });
+
+        const recent = await call({ method: "user.getRecentTracks", sk: key });
+        expect(recent.recenttracks.track[0]).toMatchObject({ name: "Another Track", date: { uts: "1700000200" } });
+    });
+
+    it("rejects ListenBrainz requests without a valid token", async () => {
+        const headers = { authorization: "Token 00000000-0000-0000-0000-000000000000" };
+        const valid = await app.inject({ method: "GET", url: "/1/validate-token", headers });
+        expect(valid.json()).toMatchObject({ valid: false });
+
+        const submit = await app.inject({
+            method: "POST",
+            url: "/1/submit-listens",
+            headers,
+            payload: { listen_type: "single", payload: [{ listened_at: 1700000300, track_metadata: { artist_name: "a", track_name: "b" } }] },
+        });
+        expect(submit.statusCode).toBe(401);
     });
 });

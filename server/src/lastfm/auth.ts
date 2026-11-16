@@ -5,9 +5,18 @@ import { apiTokens, users } from "../db/schema.js";
 import { hashPassword, verifyPassword } from "../auth/password.js";
 import { LastfmError, LastfmErrorCode, type Handler, type Params } from "../lastfm/shared.js";
 
-const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
-
 const dummyHash = hashPassword(randomBytes(16).toString("hex"));
+
+export const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
+
+export async function findUserByLogin(username: string, password: string) {
+    const [user] = await db
+        .select()
+        .from(users)
+        .where(sql`lower(${users.username}) = ${username.toLowerCase()}`);
+    const ok = await verifyPassword(password, user?.passwordHash ?? await dummyHash);
+    return user && ok ? user : undefined;
+}
 
 export const getMobileSession: Handler = async (params: Params) => {
     const { username, password } = params;
@@ -15,12 +24,8 @@ export const getMobileSession: Handler = async (params: Params) => {
         throw new LastfmError(LastfmErrorCode.InvalidParameters, "Username and password are required");
     }
 
-    const [user] = await db
-        .select()
-        .from(users)
-        .where(sql`lower(${users.username}) = ${username.toLowerCase()}`);
-    const ok = await verifyPassword(password, user?.passwordHash ?? await dummyHash);
-    if (!user || !ok) {
+    const user = await findUserByLogin(username, password);
+    if (!user) {
         throw new LastfmError(LastfmErrorCode.AuthenticationFailed, "Invalid username or password");
     }
 

@@ -7,9 +7,9 @@ import { LastfmError, LastfmErrorCode, type Handler } from "./shared.js";
 const MAX_NAME_LENGTH = 1024;
 const MAX_BATCH = 50;
 
-export const normalize = (value: string) => value.normalize("NFKC").trim().replace(/\s+/g, " ").toLowerCase();
 const field = (value: string | undefined) => ({ "#text": value ?? "", corrected: "0" });
-const tooLong = (...values: (string | undefined)[]) => values.some((value) => (value?.length ?? 0) > MAX_NAME_LENGTH);
+export const normalize = (value: string) => value.normalize("NFKC").trim().replace(/\s+/g, " ").toLowerCase();
+export const tooLong = (...values: (string | undefined)[]) => values.some((value) => (value?.length ?? 0) > MAX_NAME_LENGTH);
 
 export async function findOrCreateArtist(name: string) {
     const [row] = await db
@@ -71,7 +71,7 @@ export const updateNowPlaying: Handler = async (params) => {
     };
 };
 
-async function resolveTrack(artist: string, track: string, album?: string, albumArtist?: string) {
+export async function resolveTrack(artist: string, track: string, album?: string, albumArtist?: string) {
     const artistId = await findOrCreateArtist(artist);
     const trackId = await findOrCreateTrack(artistId, track);
     const albumArtistId = albumArtist?.trim() ? await findOrCreateArtist(albumArtist) : artistId;
