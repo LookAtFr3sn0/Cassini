@@ -3,18 +3,12 @@ import type { Params, Result, Handler } from "../lastfm/shared.js";
 import formbody from "@fastify/formbody";
 import { LastfmError, LastfmErrorCode, toXml } from "../lastfm/shared.js";
 import { getMobileSession } from "../lastfm/auth.js";
-import { updateNowPlaying } from "../lastfm/track.js";
-
-function notImplemented(name: string): Handler {
-    return async () => {
-        throw new LastfmError(LastfmErrorCode.InvalidMethod, `Method ${name} is not implemented`);
-    }
-}
+import { scrobble, updateNowPlaying } from "../lastfm/track.js";
 
 const handlers: Record<string, Handler> = {
     "auth.getMobileSession": getMobileSession,
     "track.updateNowPlaying": updateNowPlaying,
-    "track.scrobble": notImplemented("track.scrobble")
+    "track.scrobble": scrobble,
 };
 
 function send(reply: FastifyReply, wantsJson: boolean, status: number, json: Result, xmlSource: Result = json) {
