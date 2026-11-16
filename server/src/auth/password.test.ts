@@ -50,4 +50,11 @@ describe("verifyPassword", () => {
         expect(await verifyPassword("anything", "plaintext")).toBe(false);
         expect(await verifyPassword("anything", "$argon2id$broken$format")).toBe(false);
     });
+
+    it.each([
+        `$argon2id$v=19$m=65536,t=1,p=0$${"A".repeat(16)}$${"B".repeat(43)}`,
+        `$argon2id$v=19$m=65536,t=1,p=2$${"A".repeat(16)}$${"B".repeat(3)}`,
+    ])("returns false for a stored hash with bad parameters", async (stored) => {
+        await expect(verifyPassword("password", stored)).resolves.toBe(false);
+    });
 });
