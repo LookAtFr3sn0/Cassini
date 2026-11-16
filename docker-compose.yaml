@@ -24,6 +24,7 @@ services:
     container_name: cassini-backend
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-cassini}:${POSTGRES_PASSWORD:-cassini}@db:5432/${POSTGRES_DB:-cassini}
+      SINGLE_USER: ${SINGLE_USER:-true}
     depends_on:
       db:
         condition: service_healthy
