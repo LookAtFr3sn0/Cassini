@@ -25,5 +25,6 @@ describe("toXml", () => {
         expect(toXml("scrobbles", { "@attr": { accepted: 1, ignored: 0 }, scrobble: "x" })).toBe('<scrobbles accepted="1" ignored="0"><scrobble>x</scrobble></scrobbles>');
         expect(toXml("tag", ["a", "b"])).toBe('<tag>a</tag><tag>b</tag>');
         expect(toXml("tag", [])).toBe('');
+        expect(toXml("tags", { "@attr": { count: 2 }, tag: [{ name: "a" }, { "@attr": { top: "true" }, name: "b" }] })).toBe('<tags count="2"><tag><name>a</name></tag><tag top="true"><name>b</name></tag></tags>');
     });
 });

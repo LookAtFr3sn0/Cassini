@@ -65,6 +65,8 @@ describe("signup, login, scrobble, read back", () => {
 
         const recent = await call({ method: "user.getRecentTracks", sk: key });
         expect(recent.recenttracks["@attr"].total).toBe("1");
+
+        const exact
     });
 
     it("treats the same artist written differently as the same artist", async () => {
@@ -295,7 +297,7 @@ describe("ListenBrainz endpoint", () => {
 
     it("stores nothing when one listen of a batch is bad", async () => {
         const before = await total();
-        const response = await submit("import", [[listen("LB Artist", "Good", 1650000000), listen("LB Artist", "Bad")]]);
+        const response = await submit("import", [listen("LB Artist", "Good", 1650000000), listen("LB Artist", "Bad")]);
         expect(response.statusCode).toBe(400);
         expect(await total()).toBe(before);
     });
@@ -360,7 +362,7 @@ describe("a second user", () => {
 
     it("can store the same play the first user already has", async () => {
         const before = await total();
-        const result = await call({ method: "track.scrobble", sk: otherKey, artist: "Test Artist", track: "Test Track", albumArtist: "Various Artists", timestamp: "1600001000" });
+        const result = await call({ method: "track.scrobble", sk: otherKey, artist: "Test Artist", track: "Test Track", albumArtist: "Various Artists", timestamp: "1700000000" });
         expect(result.scrobbles["@attr"]).toEqual({ accepted: 1, ignored: 0 });
         expect(await total(otherKey)).toBe(1);
         expect(await total()).toBe(before);

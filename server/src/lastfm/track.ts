@@ -92,6 +92,15 @@ export const scrobble: Handler = async (params) => {
     const userId = await requireSession(params);
     const get = (name: string, index: number) => params[`${name}[${index}]`] ?? (index == 0 ? params[name] : undefined);
 
+    const overLimit = Object.keys(params).some((key) => {
+        const index = /^(?:artist|track)\[(\d+)\]$/.exec(key)?.[1];
+        return index !== undefined && Number(index) >= MAX_BATCH;
+    });
+
+    if (overLimit) {
+        throw new LastfmError(LastfmErrorCode.InvalidParameters, `Too many scrobbles, maximum is ${MAX_BATCH} per request`);
+    }
+
     const results = [];
     let accepted = 0;
     for (let i = 0; i < MAX_BATCH; i++) {

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { scrobbles } from "../db/schema.js";
+import { scrobbles, nowPlaying } from "../db/schema.js";
 import { scrobble } from "./track.js";
 
 const state = vi.hoisted(() => ({ inserted: [] as { table: unknown; value: Record<string, unknown> }[] }));
@@ -45,6 +45,22 @@ describe("normalize", () => {
 describe("updateNowPlaying", () => {
     it("rejects parameters that are too long", async () => {
         await expect(updateNowPlaying({ sk: "x", artist: "a".repeat(1025), track: "b" })).rejects.toMatchObject({ code: LastfmErrorCode.InvalidParameters });
+    });
+
+    it("stores the playing track for the length of the song", async () => {
+        state.inserted.length = 0;
+        const result = await updateNowPlaying({ sk: "x", artist: "a", track: "b", duration: "200" });
+        const row = state.inserted.find((row) => row.table === nowPlaying)!.value as { startedAt: Date; expiresAt: Date };
+        expect(row.expiresAt.getTime() - row.startedAt.getTime()).toBe(200 * 1000);
+        expect(result).toMatchObject({ nowplaying: { artist: { "#text": "a" }, track: { "#text": "b" }, ignoredMessage: { code: "0" } } });
+    });
+
+    it("rejects a missing track", async () => {
+        await expect(updateNowPlaying({ sk: "x", artist: "a" })).rejects.toMatchObject({ code: LastfmErrorCode.InvalidParameters });
+    });
+
+    it("accepts a name of exactly 1024 characters", async () => {
+        await expect(updateNowPlaying({ sk: "x", artist: "a".repeat(1024), track: "b" })).resolves.toBeDefined();
     });
 });
 
@@ -96,5 +112,14 @@ describe("scrobble", () => {
 
     it("rejects a request with no scrobbles", async () => {
         await expect(scrobble({ sk: "x" })).rejects.toMatchObject({ code: LastfmErrorCode.InvalidParameters });
+    });
+
+    it("rejects a batch with entries past the 50 limit", async () => {
+        await expect(scrobble({
+            sk: "x",
+            "artist[49]": "a", "track[49]": "b", "timestamp[49]": "1699999900",
+            "artist[50]": "c", "track[50]": "d", "timestamp[50]": "1700000000",
+        })).rejects.toMatchObject({ code: LastfmErrorCode.InvalidParameters });
+        expect(saved()).toHaveLength(0);
     });
 });
