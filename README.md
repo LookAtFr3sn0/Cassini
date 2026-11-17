@@ -58,7 +58,7 @@ Each track has `artist`, `title`, `album`, `mbid` when known, a `score` from 0 t
 
 Cassini is designed to run with Docker Compose:
 ```sh
-git clone https://github.com/LookAtFr3sn0/Cassini cassini
+git clone https://github.com/cassini-fm/Cassini cassini
 cd cassini
 cp .env.example .env # Edit .env with your credentials
 docker compose up -d
