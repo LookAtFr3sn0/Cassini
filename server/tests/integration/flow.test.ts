@@ -66,7 +66,9 @@ describe("signup, login, scrobble, read back", () => {
         const recent = await call({ method: "user.getRecentTracks", sk: key });
         expect(recent.recenttracks["@attr"].total).toBe("1");
 
-        const exact
+        const exact = await call({ method: "user.getRecentTracks", sk: key, from: "1700000000", to: "1700000000" });
+        const stored = exact.recenttracks.track.find((track: { date?: { uts: string } }) => track.date?.uts === "1700000000");
+        expect(stored).toMatchObject({ name: "Test Track", artist: { "#text": "Test Artist" } });
     });
 
     it("treats the same artist written differently as the same artist", async () => {
