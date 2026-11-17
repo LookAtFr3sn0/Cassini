@@ -36,7 +36,7 @@ services:
 
 networks:
   db:
-    name: cassini-db
+    name: cassini_db
     driver: bridge
 
 volumes:
