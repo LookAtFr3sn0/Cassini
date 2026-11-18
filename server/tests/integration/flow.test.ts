@@ -12,6 +12,7 @@ beforeAll(async () => {
     container = await new PostgreSqlContainer("postgres:18-alpine").start();
     process.env.DATABASE_URL = container.getConnectionUri();
     process.env.SINGLE_USER = "false";
+    process.env.RECOMMENDER_DB_PASSWORD = "test";
 
     const { migrate } = await import("drizzle-orm/node-postgres/migrator");
     const { db } = await import("../../src/db/index.js");
@@ -264,6 +265,53 @@ describe("tokens", () => {
 
         expect((await stats(`Bearer ${token}`)).statusCode).toBe(401);
     });
+});
+
+describe("web session", () => {
+    it("logs in with a cookie, uses it, and logs out", async () => {
+        const login = await app.inject({
+            method: "POST",
+            url: "/api/session",
+            payload: { username: "testuser", password: "testpass" },
+        });
+        expect(login.statusCode).toBe(200);
+        
+        const cookie = login.cookies.find((c) => c.name === "cassini_session")!;
+        expect(cookie).toMatchObject({ httpOnly: true, sameSite: "Strict", path: "/" });
+        
+        const cookies = { cassini_session: cookie.value };
+        expect((await app.inject({
+            method: "GET",
+            url: "/api/session",
+            cookies,
+        })).json()).toMatchObject({ username: "testuser" });
+        expect((await app.inject({
+            method: "GET",
+            url: "/api/v1/stats/top/artists",
+            cookies,
+        })).statusCode).toBe(200);
+        
+        expect((await app.inject({
+            method: "DELETE",
+            url: "/api/session",
+            cookies,
+        })).statusCode).toBe(204);
+        expect((await app.inject({
+            method: "GET",
+            url: "/api/v1/stats/top/artists",
+            cookies,
+        })).statusCode).toBe(401);
+    });
+
+    it("refuses a wrong password", async () => {
+        const login = await app.inject({
+            method: "POST",
+            url: "/api/session",
+            payload: { username: "testuser", password: "wrongpass" },
+        });
+        expect(login.statusCode).toBe(401);
+        expect(login.cookies).toEqual([]);
+    })
 });
 
 describe("ListenBrainz endpoint", () => {

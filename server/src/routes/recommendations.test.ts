@@ -10,7 +10,7 @@ const state = vi.hoisted(() => ({
     calls: [] as unknown[][],
 }));
 
-vi.mock("../auth/tokens.js", async () => ({ findUserByHeader: async () => state.user }));
+vi.mock("../auth/tokens.js", async () => ({ findApiUser: async () => state.user }));
 
 vi.mock("../recommendations/engine.js", async () => ({
     DEFAULT_SOURCE: "builtin",

@@ -24,4 +24,6 @@ export const config = {
     recommendationsEnabled: (process.env.RECOMMENDATIONS_ENABLED ?? "true").toLowerCase() === "true",
     recommenders: recommenders(),
     recommenderDBPassword: required("RECOMMENDER_DB_PASSWORD"),
+    secureCookies: (process.env.SECURE_COOKIES ?? "false").toLowerCase() === "true",
+    webRoot: process.env.WEB_ROOT || "public",
 };

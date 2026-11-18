@@ -1,0 +1,1 @@
+ALTER TYPE "public"."token_kind" ADD VALUE 'web';

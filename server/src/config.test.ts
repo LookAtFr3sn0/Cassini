@@ -4,6 +4,7 @@ const load = async (singleUser: string | undefined, databaseUrl = "postgres://te
     vi.resetModules();
     vi.stubEnv("DATABASE_URL", databaseUrl);
     vi.stubEnv("SINGLE_USER", singleUser);
+    vi.stubEnv("RECOMMENDER_DB_PASSWORD", "test");
     return (await import("./config.js")).config;
 };
 

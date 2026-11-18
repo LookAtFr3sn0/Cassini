@@ -29,7 +29,7 @@ export const users = pgTable(
     (t) => [uniqueIndex("users_username_lower_idx").on(sql`lower(${t.username})`)],
 );
 
-export const tokenKind = pgEnum("token_kind", ["lastfm", "listenbrainz", "api"]);
+export const tokenKind = pgEnum("token_kind", ["lastfm", "listenbrainz", "api", "web"]);
 
 export const apiTokens = pgTable(
     "api_tokens",

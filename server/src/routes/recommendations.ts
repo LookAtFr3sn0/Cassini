@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { findUserByHeader } from "../auth/tokens.js";
+import { findApiUser } from "../auth/tokens.js";
 import { DEFAULT_SOURCE, hasSource, modesOf, recommend, sources } from "../recommendations/engine.js";
 
 const queryString = {
@@ -15,7 +15,7 @@ type Route = { Querystring: { source: string; mode?: string; limit: number } };
 
 export async function recommendationRoutes(app: FastifyInstance) {
     app.get("/api/v1/recommendations/sources", async (request, reply) => {
-        const user = await findUserByHeader(request, "Bearer", "api");
+        const user = await findApiUser(request);
         if (!user) {
             return reply.code(401).send({ error: "Unauthorized" });
         }
@@ -29,7 +29,7 @@ export async function recommendationRoutes(app: FastifyInstance) {
     });
 
     app.get<Route>("/api/v1/recommendations", { schema: { querystring: queryString } }, async (request, reply) => {
-        const user = await findUserByHeader(request, "Bearer", "api");
+        const user = await findApiUser(request);
         if (!user) {
             return reply.code(401).send({ error: "Unauthorized" });
         }

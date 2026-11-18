@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { and, count, desc, eq, gte, lt, sql, type SQL } from "drizzle-orm";
-import { findUserByHeader } from "../auth/tokens.js";
+import { findApiUser } from "../auth/tokens.js";
 import { db } from "../db/index.js";
 import { albums, artists, scrobbles, tracks } from "../db/schema.js";
 
@@ -76,7 +76,7 @@ type ActivityRoute = { Querystring: { from?: number; to?: number; bucket: "day" 
 
 export async function statsRoutes(app: FastifyInstance) {
     app.get<Route>("/api/v1/stats/top/:kind", { schema: { params, querystring: queryString } }, async (request, reply) => {
-        const user = await findUserByHeader(request, "Bearer", "api");
+        const user = await findApiUser(request);
         if (!user) {
             return reply.code(401).send({ error: "Invalid token" });
         }
@@ -88,7 +88,7 @@ export async function statsRoutes(app: FastifyInstance) {
     });
 
     app.get<ActivityRoute>("/api/v1/stats/activity", { schema: { querystring: activityQuery }}, async (request, reply) => {
-        const user = await findUserByHeader(request, "Bearer", "api");
+        const user = await findApiUser(request);
         if (!user) {
             return reply.code(401).send({ error: "Invalid token" });
         }
