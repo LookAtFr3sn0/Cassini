@@ -25,6 +25,7 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-cassini}:${POSTGRES_PASSWORD:-cassini}@db:5432/${POSTGRES_DB:-cassini}
       SINGLE_USER: ${SINGLE_USER:-true}
+      RECOMMENDER_DB_PASSWORD: ${RECOMMENDER_DB_PASSWORD:-cassini}
     depends_on:
       db:
         condition: service_healthy

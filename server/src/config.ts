@@ -23,4 +23,5 @@ export const config = {
     singleUser: (process.env.SINGLE_USER ?? "true").toLowerCase() === "true",
     recommendationsEnabled: (process.env.RECOMMENDATIONS_ENABLED ?? "true").toLowerCase() === "true",
     recommenders: recommenders(),
+    recommenderDBPassword: required("RECOMMENDER_DB_PASSWORD"),
 };
