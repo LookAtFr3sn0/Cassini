@@ -344,6 +344,114 @@ describe("web session", () => {
     });
 });
 
+describe("CSV import and export", () => {
+    let cookies: Record<string, string> = {};
+
+    const upload = (body: string, type = "text/csv") => app.inject({
+        method: "POST",
+        url: "/api/v1/import",
+        cookies,
+        headers: { "content-type": type },
+        payload: body,
+    });
+
+    const download = async () => (await app.inject({
+        method: "GET",
+        url: "/api/v1/export",
+        cookies,
+    })).body.trimEnd().split("\r\n");
+
+    beforeAll(async () => {
+        await app.inject({
+            method: "POST",
+            url: "/api/signup",
+            payload: { username: "csvuser", email: "csvuser@example.com", password: "csvpass1" },
+        });
+        const login = await app.inject({
+            method: "POST",
+            url: "/api/session",
+            payload: { username: "csvuser", password: "csvpass1" },
+        });
+        cookies = { cassini_session: login.cookies.find((c) => c.name === "cassini_session")!.value };
+    });
+
+    it("imports a file and exports the same plays", async () => {
+        const file = [
+            "played_at,artist,track,album",
+            "2024-01-01T00:00:00.000Z,CSV Artist,CSV Track,CSV Album",
+            '2024-01-01T00:05:00.000Z,"Artist, with comma","Track ""with quotes""",',
+        ].join("\r\n");
+        expect((await upload(file)).json()).toEqual({ imported: 2, duplicates: 0 });
+        expect(await download()).toEqual(file.split("\r\n"));
+    });
+
+    it("counts plays it already has as duplicates", async () => {
+        const file = "played_at,artist,track,album\n2024-01-01T00:00:00.000Z,CSV Artist,CSV Track,CSV Album\n2024-01-01T00:10:00.000Z,CSV Artist,CSV Track 2,\n";
+        expect((await upload(file)).json()).toEqual({ imported: 1, duplicates: 1 });
+        expect(await download()).toHaveLength(4);
+    });
+
+    it("accepts Unix seconds, any column order, extra columnms and ignores a BOM", async () => {
+        const file = "\uFEFFtrack,ARTIST,source,played_at\nCSV Track 3,CSV Artist,phone,1620000000\n";
+        expect((await upload(file)).json()).toEqual({ imported: 1, duplicates: 0 });
+        expect(await download()).toContain("2021-05-03T00:00:00.000Z,CSV Artist,CSV Track 3,");
+    });
+
+    it("stores nothing when one line is bad, and says which", async () => {
+        const file = "played_at,artist,track\n2024-01-01T00:00:00.000Z,CSV Artist,CSV Track\nyesterday,CSV Artist,bad line\n";
+        const response = await upload(file);
+        expect(response.statusCode).toBe(400);
+        expect(response.json()).toEqual({ error: "Line 3: played_at is not a date"});
+        expect(await download()).toHaveLength(5);
+    });
+
+    it.each([
+        ["", "Line 1: the file is empty"],
+        ["artist,track\nA,B\n", "Line 1: the file must have played_at, artist, and track columns"],
+        ["played_at,artist,track\n2024-01-01T00:00:00.000Z,,B\n", "Line 2: the artist is empty"],
+        ["played_at,artist,track\n2999-01-01T00:00:00.000Z,A,B\n", "Line 2: played_at is in the future"],
+        ['played_at,artist,track\n2024-01-01T00:00:00.000Z,"A,B\n', "Line 2: a quoted value is never closed"],
+    ])("rejects %j", async (file, error) => {
+        const response = await upload(file);
+        expect(response.statusCode).toBe(400);
+        expect(response.json()).toEqual({ error })
+    });
+
+    it("only takes in CSV files", async () => {
+        expect((await upload(JSON.stringify({ plays: [] }), "application/json")).statusCode).toBe(415);
+    });
+
+    it("needs a session or an API token", async () => {
+        const anonymous = await app.inject({
+            method: "POST",
+            url: "/api/v1/import",
+            headers: { "content-type": "text/csv" },
+            payload: "played_at,artist,track\n",
+        });
+        expect(anonymous.statusCode).toBe(401);
+        expect((await app.inject({
+            method: "GET",
+            url: "/api/v1/export",
+            headers: { "content-type": "text/csv" },
+        })).statusCode).toBe(401);
+    });
+
+    it("keeps each user's plays separate", async () => {
+        const login = await app.inject({
+            method: "POST",
+            url: "/api/session",
+            payload: { username: "testuser", password: "testpass" },
+        });
+        const other = { cassini_session: login.cookies.find((c) => c.name === "cassini_session")!.value };
+        const rows = (await app.inject({
+            method: "GET",
+            url: "/api/v1/export",
+            cookies: other,
+        })).body;
+        expect(rows).not.toContain("CSV Artist");
+    });
+});
+
 describe("ListenBrainz endpoint", () => {
     let headers = {};
     const listen = (artist_name: string, track_name: string, listened_at?: number, release_name?: string) => ({
@@ -586,3 +694,4 @@ describe("managing tokens from the web", async () => {
         })).statusCode).toBe(400);
     });
 });
+
