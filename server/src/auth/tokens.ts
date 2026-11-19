@@ -26,8 +26,12 @@ export async function findUserByHeader(request: FastifyRequest, scheme: "Token" 
     return findUserByToken(token, kind);
 }
 
-export async function findApiUser(request: FastifyRequest) {
-    if (request.headers.authorization) return findUserByHeader(request, "Bearer", "api");
+export async function findSessionUser(request: FastifyRequest) {
     const session = request.cookies?.[SESSION_COOKIE];
     return session ? findUserByToken(session, "web") : undefined;
+}
+
+export async function findApiUser(request: FastifyRequest) {
+    if (request.headers.authorization) return findUserByHeader(request, "Bearer", "api");
+    return findSessionUser(request);
 }
