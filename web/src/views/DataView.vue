@@ -23,10 +23,10 @@ async function submit() {
 
     try {
         const body = new Blob([file.value], { type: "text/csv" });
-        result.value = await api<Result>("/api/data/import", { method: "POST", body });
+        result.value = await api<Result>("/api/v1/import", { method: "POST", body });
     } catch (err) {
         if (err instanceof HttpError && err.status === 413) error.value = "The file is too large, the limit is 50 MB";
-        else error.value = (err instanceof HttpError && err.details) || "An unexpected error occurred.";
+        else error.value = (err instanceof HttpError && err.detail) || "An unexpected error occurred.";
     } finally {
         loading.value = false;
     }

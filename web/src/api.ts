@@ -2,12 +2,12 @@ export class Unauthorized extends Error {}
 
 export class HttpError extends Error {
     status: number;
-    details: string | undefined;
+    detail: string | undefined;
 
     constructor(status: number, message: string, detail?: string) {
         super(message);
         this.status = status;
-        this.details = detail;
+        this.detail = detail;
     }
 }
 
