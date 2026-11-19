@@ -14,7 +14,7 @@ const MAX_UPLOAD = 50 * 1024 * 1024;
 type Play = { line: number; playedAt: Date; artist: string; track: string; album: string };
 
 async function* lines(userId: string) {
-    yield "played_at,artist,track,album\r\n";
+    yield "\uFEFFplayed_at,artist,track,album\r\n";
 
     let lastId = 0;
     while (true) {

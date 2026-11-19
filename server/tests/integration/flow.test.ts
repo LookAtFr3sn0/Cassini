@@ -377,12 +377,21 @@ describe("CSV import and export", () => {
 
     it("imports a file and exports the same plays", async () => {
         const file = [
-            "played_at,artist,track,album",
+            "\uFEFFplayed_at,artist,track,album",
             "2024-01-01T00:00:00.000Z,CSV Artist,CSV Track,CSV Album",
             '2024-01-01T00:05:00.000Z,"Artist, with comma","Track ""with quotes""",',
         ].join("\r\n");
         expect((await upload(file)).json()).toEqual({ imported: 2, duplicates: 0 });
         expect(await download()).toEqual(file.split("\r\n"));
+    });
+
+    it("starts the export with a byte order mark, so Excel reads it as UTF-8", async () => {
+        const response = await app.inject({
+            method: "GET",
+            url: "/api/v1/export",
+            cookies,
+        });
+        expect(response.body.startsWith("\uFEFFplayed_at,artist,track,album\r\n")).toBe(true);
     });
 
     it("counts plays it already has as duplicates", async () => {

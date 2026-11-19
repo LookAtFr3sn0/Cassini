@@ -1,18 +1,16 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { loadSession } from "@/session";
 import LoginView from "@/views/LoginView.vue";
-import RecentView from "@/views/RecentView.vue";
-import TopView from "@/views/TopView.vue";
 import SignupView from "@/views/SignupView.vue";
-import TokensView from "@/views/TokensView.vue";
 
 const routes = [
   { path: '/login', name: 'login', component: LoginView, meta: { public: true } },
   { path: '/signup', name: 'signup', component: SignupView, meta: { public: true } },
-  { path: '/', name: 'recent', component: RecentView },
-  { path: '/tokens', name: 'tokens', component: TokensView },
+  { path: '/', name: 'recent', component: () => import("@/views/RecentView.vue") },
+  { path: '/tokens', name: 'tokens', component: () => import("@/views/TokensView.vue") },
+  { path: '/data', name: 'data', component: () => import("@/views/DataView.vue") },
   { path: '/top', redirect: '/top/artists' },
-  { path: '/top/:kind(artists|tracks|albums)', name: 'top', component: TopView, props: true },
+  { path: '/top/:kind(artists|tracks|albums)', name: 'top', component: () => import("@/views/TopView.vue"), props: true },
   { path: '/:pathMatch(.*)*', redirect: '/' },
 ];
 
