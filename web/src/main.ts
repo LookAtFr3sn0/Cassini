@@ -1,9 +1,20 @@
-import { createApp } from 'vue'
-import App from './App.vue'
-import router from './router'
+import { createApp } from "vue";
+import App from "./App.vue";
+import router from "./router";
+import { Unauthorized } from "./api";
+import { user } from "./session";
 
-const app = createApp(App)
+const app = createApp(App);
 
-app.use(router)
+app.config.errorHandler = (error) => {
+    if (error instanceof Unauthorized) {
+        user.value = null;
+        router.push({ name: "login" });
+    } else {
+        console.error(error);
+    }
+};
 
-app.mount('#app')
+app.use(router);
+
+app.mount('#app');
