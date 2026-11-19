@@ -17,7 +17,7 @@ export async function recommendationRoutes(app: FastifyInstance) {
     app.get("/api/v1/recommendations/sources", async (request, reply) => {
         const user = await findApiUser(request);
         if (!user) {
-            return reply.code(401).send({ error: "Unauthorized" });
+            return reply.code(401).send({ error: "Not authenticated" });
         }
 
         const list = await Promise.all(sources().map(async (name) => ({
@@ -31,7 +31,7 @@ export async function recommendationRoutes(app: FastifyInstance) {
     app.get<Route>("/api/v1/recommendations", { schema: { querystring: queryString } }, async (request, reply) => {
         const user = await findApiUser(request);
         if (!user) {
-            return reply.code(401).send({ error: "Unauthorized" });
+            return reply.code(401).send({ error: "Not authenticated" });
         }
 
         const { source, limit } = request.query;

@@ -22,7 +22,7 @@ export async function playsRoutes(app: FastifyInstance) {
     app.get<Route>("/api/v1/plays", { schema: { querystring: queryString }}, async (request, reply) => {
         const user = await findApiUser(request);
         if (!user) {
-            return reply.code(401).send({ error: "Unauthorized" });
+            return reply.code(401).send({ error: "Not authenticated" });
         }
 
         const { before, limit } = request.query;
