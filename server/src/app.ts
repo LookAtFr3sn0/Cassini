@@ -25,11 +25,13 @@ export async function buildApp(options: FastifyServerOptions = {}) {
     if (config.recommendationsEnabled) await app.register(recommendationRoutes);
     
     const webRoot = resolve(config.webRoot);
-    if (existsSync(webRoot)) await app.register(fastifyStatic, { root: webRoot, wildcard: false });
-    app.setNotFoundHandler((request, reply) => {
-        const isPage = request.method === "GET" && !/^\/(?:api|2\.0|1)(\/|\?|$)/.test(request.url);
-        return isPage ? reply.sendFile("index.html") : reply.code(404).send({ error: "Not found" });
-    });
+    if (existsSync(webRoot)) {
+        await app.register(fastifyStatic, { root: webRoot, wildcard: false });
+        app.setNotFoundHandler((request, reply) => {
+            const isPage = request.method === "GET" && !/^\/(?:api|2\.0|1)(\/|\?|$)/.test(request.url);
+            return isPage ? reply.sendFile("index.html") : reply.code(404).send({ error: "Not found" });
+        });
+    }
 
     return app;
 }
