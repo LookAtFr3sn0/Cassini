@@ -26,7 +26,7 @@ async function submit() {
         result.value = await api<Result>("/api/v1/import", { method: "POST", body });
     } catch (err) {
         if (err instanceof HttpError && err.status === 413) error.value = "The file is too large, the limit is 50 MB";
-        else error.value = (err instanceof HttpError && err.detail) || "An unexpected error occurred.";
+        else error.value = (err instanceof HttpError && err.detail) || "An unexpected error occurred";
     } finally {
         loading.value = false;
     }
@@ -43,7 +43,7 @@ const plays = (count: number) => `${count} ${count === 1 ? "play" : "plays"}`;
         <button type="submit" :disabled="loading || !file">{{ loading ? "Importing..." : "Import" }}</button>
     </form>
 
-    <p v-if="result" class="success" role="status">Imported {{  plays(result.imported) }}, skipped {{ plays(result.duplicates) }} duplicates</p>
+    <p v-if="result" class="success" role="status">Imported {{  plays(result.imported) }}, skipped {{ result.duplicates }} duplicates</p>
     <p v-if="error" class="error" role="alert">{{ error }}</p>
 
     <h2>Export</h2>
