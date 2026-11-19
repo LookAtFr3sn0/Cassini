@@ -25,7 +25,7 @@ describe("RecentView", () => {
         api.mockResolvedValue({ nowPlaying: null, items: [play(1700000300, "Test Track One", "Test Album"), play(1700000000, "Test Track Two")], next: null });
         const wrapper = await render();
         const rows = wrapper.findAll("li .title").map((row) => row.text());
-        expect(rows).toEqual(["Test Track One - Test Artist - Test Album", "Test Track Two - Test Artist"]);
+        expect(rows).toEqual(["Test Track One by Test Artist - Test Album", "Test Track Two by Test Artist"]);
         expect(api).toHaveBeenCalledWith("/api/v1/plays");
     });
 

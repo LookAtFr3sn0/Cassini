@@ -44,7 +44,7 @@ onMounted(() => load());
     <p v-if="playing">Now playing: <strong>{{ playing.track }}</strong> by {{ playing.artist }}<template v-if="playing.album"> - {{ playing.album }}</template></p>
     <ol>
         <li v-for="play in plays" :key="`${play.playedAt}-${play.track}`">
-            <span class="title"><strong>{{ play.track }}</strong> - {{ play.artist }}<template v-if="play.album"> - {{ play.album }}</template> </span>
+            <span class="title"><strong>{{ play.track }}</strong> by {{ play.artist }}<template v-if="play.album"> - {{ play.album }}</template> </span>
             <time :datetime="new Date(play.playedAt * 1000).toISOString()">{{ time(play.playedAt) }}</time>
         </li>
     </ol>

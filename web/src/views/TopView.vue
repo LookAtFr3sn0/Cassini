@@ -57,7 +57,7 @@ const name = (item: Item) => item.track ?? item.album ?? item.artist;
             <span class="rank">{{ index + 1 }}</span>
             <span class="title">
                 <strong>{{ name(item) }}</strong>
-                <template v-if="kind !== 'artists'"> - {{ item.artist }}</template>
+                <template v-if="kind !== 'artists'"> by {{ item.artist }}</template>
             </span>
             <span class="count">{{ item.plays }} {{ item.plays === 1 ? 'play' : 'plays' }}</span>
         </li>
