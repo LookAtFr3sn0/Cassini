@@ -37,7 +37,7 @@ describe("parseCsv", () => {
     });
 
     it("fails on a quote that is never closed", () => {
-        expect(() => parseCsv('a\n"b,c\n')).toThrow(new CsvError(2, "A quoted value is never closed"));
+        expect(() => parseCsv('a\n"b,c\n')).toThrow(new CsvError(2, "a quoted value is never closed"));
     });
 });
 

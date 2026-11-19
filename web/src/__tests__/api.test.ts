@@ -60,4 +60,27 @@ describe("api", () => {
         expect(error).toBeInstanceOf(HttpError);
         expect(error).toMatchObject({ status: 502, message: "502 Bad Gateway" });
     });
+
+    it("keeps the server's error messages", async () => {
+        respond(400, { error: "Line 3: played_at is not a date" }, "Bad Request");
+        const error = await api("/api/v1/import").catch((e: unknown) => e);
+        expect(error).toMatchObject({ status: 400, detail: "Line 3: played_at is not a date" });
+    });
+
+    it("has no detail when the error body is not JSON", async () => {
+        vi.stubGlobal("fetch", vi.fn(async () => new Response("<html>", { status: 502, statusText: "Bad Gateway" })));
+        const error = await api("/api/v1/plays").catch((e: unknown) => e);
+        expect(error).toMatchObject({ status: 502, detail: undefined });
+    });
+
+    it("sends a file as it is, with its own type", async () => {
+        respond(200, {});
+        const file = new Blob(["played_at,artist,track\n"], { type: "text/csv" });
+        await api("/api/v1/import", { method: "POST", body: file });
+        expect(lastCall()[1]).toEqual({
+            method: "POST",
+            headers: { "Content-Type": "text/csv" },
+            body: file
+        });
+    });
 });
