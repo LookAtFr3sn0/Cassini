@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { api, Unauthorized } from "@/api";
+import { api, HttpError, Unauthorized } from "@/api";
 
 const respond = (status: number, body?: unknown, statusText = "") => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(body === undefined ? null : JSON.stringify(body), { status, statusText })));
@@ -57,6 +57,7 @@ describe("api", () => {
         respond(502, { error: "down" }, "Bad Gateway");
         const error = await api("/api/v1/plays").catch((e: unknown) => e);
         expect(error).not.toBeInstanceOf(Unauthorized);
-        expect(error).toEqual(new Error("502 Bad Gateway"));
+        expect(error).toBeInstanceOf(HttpError);
+        expect(error).toMatchObject({ status: 502, message: "502 Bad Gateway" });
     });
 });

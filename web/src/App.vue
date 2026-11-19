@@ -16,6 +16,7 @@ async function signOut() {
         <nav>
             <RouterLink to="/">Recent</RouterLink>
             <RouterLink to="/top/artists" :class="{ active: $route.name === 'top' }">Top Artists</RouterLink>
+            <RouterLink to="/tokens" :class="{ active: $route.name === 'tokens' }">Tokens</RouterLink>
         </nav>
         <span class="muted">{{ user.username }}</span>
         <button @click="signOut">Sign Out</button>

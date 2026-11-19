@@ -1,14 +1,17 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { Unauthorized } from "@/api";
-import { login } from "@/session";
+import { login, signupOpen } from "@/session";
+import SignupView from "@/views/SignupView.vue";
+import TokensView from "@/views/TokensView.vue";
 
 const route = useRoute();
 const router = useRouter();
 
 const username = ref("");
 const password = ref("");
+const canSignUp = ref(false);
 const error = ref("");
 const loading = ref(false);
 
@@ -26,6 +29,10 @@ async function submit() {
         loading.value = false;
     }
 }
+
+onMounted(async () => {
+    canSignUp.value = await signupOpen().catch(() => false);
+});
 </script>
 
 <template>
@@ -36,7 +43,8 @@ async function submit() {
         <label for="password">Password</label>
         <input id="password" type="password" autocomplete="current-password" v-model="password" :disabled="loading" required />
         <p v-if="error" class="error" role="alert">{{ error }}</p>
-        <button :disabled="loading">Log in</button>
+        <button type="submit" :disabled="loading">Log in</button>
+        <p v-if="canSignUp" class="muted">Don't have an account? <router-link to="/signup">Sign up</router-link></p>
     </form>
 </template>
 

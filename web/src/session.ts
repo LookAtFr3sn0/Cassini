@@ -28,3 +28,12 @@ export async function logout() {
     await api("/api/session", { method: "DELETE" });
     user.value = null;
 }
+
+export async function signup(username: string, email: string, password: string) {
+    await api("/api/signup", { method: "POST", body: { username, email, password } });
+    return login(username, password);
+}
+
+export async function signupOpen() {
+    return (await api<{ open: boolean }>("/api/signup")).open;
+}
