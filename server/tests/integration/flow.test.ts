@@ -486,3 +486,103 @@ describe("activity in the user's own timezone", () => {
     });
 })
 
+describe("managing tokens from the web", async () => {
+    const session = async () => {
+        const login = await app.inject({
+            method: "POST",
+            url: "/api/session",
+            payload: { username: "testuser", password: "testpass" },
+        });
+        return { cassini_session: login.cookies.find((c) => c.name === "cassini_session")!.value };
+    };
+    const validate = async (token: string) => (await app.inject({
+        method: "GET",
+        url: "/1/validate-token",
+        headers: { authorization: `Token ${token}` },
+    })).json().valid;
+
+    it("says whether signups are open", async () => {
+        expect((await app.inject({
+            method: "GET",
+            url: "/api/signup",
+        })).json()).toEqual({ open: true });
+    });
+
+    it("creates, lists, and revokes a token with the session cookie", async () => {
+        const cookies = await session();
+        const created = await app.inject({
+            method: "POST",
+            url: "/api/tokens",
+            cookies,
+            payload: { kind: "listenbrainz", name: "Test Token" },
+        });
+        expect(created.statusCode).toBe(201);
+        const { id, token } = created.json();
+        expect(validate(token)).toBe(true);
+
+        const list = (await app.inject({
+            method: "GET",
+            url: "/api/tokens",
+            cookies,
+        })).json();
+        expect(list.items[0]).toMatchObject({ id, kind: "listenbrainz", name: "Test Token" });
+        expect(list.items.map((item: { kind: string }) => item.kind)).toContain("lastfm");
+        expect(list.items.map((item: { kind: string }) => item.kind)).not.toContain("web");
+
+        expect((await app.inject({
+            method: "DELETE",
+            url: `/api/tokens/${id}`,
+            cookies,
+        })).statusCode).toBe(204);
+        expect(await validate(token)).toBe(false);
+        expect((await app.inject({
+            method: "DELETE",
+            url: `/api/tokens/${id}`,
+            cookies,
+        })).statusCode).toBe(404);
+
+        const after = (await app.inject({
+            method: "GET",
+            url: "/api/tokens",
+            cookies,
+        })).json();
+        expect(after.items.map((item: { id: string }) => item.id)).not.toContain(id);
+    });
+
+    it("refuses to manage tokens without a session", async () => {
+        const api = (await app.inject({
+            method: "POST",
+            url: "/api/tokens",
+            payload: { username: "testuser", password: "testpass", kind: "api" },
+        })).json().token;
+
+        expect((await app.inject({
+            method: "GET",
+            url: "/api/tokens",
+        })).statusCode).toBe(401);
+        expect((await app.inject({
+            method: "GET",
+            url: "/api/tokens",
+            headers: { authorization: `Bearer ${api}` },
+        })).statusCode).toBe(401);
+        expect((await app.inject({
+            method: "POST",
+            url: "/api/tokens",
+            payload: { kind: "api" },
+        })).statusCode).toBe(401);
+        expect((await app.inject({
+            method: "POST",
+            url: "/api/tokens",
+            payload: { username: "testuser", kind: "api" },
+        })).statusCode).toBe(401);
+    });
+
+    it("rejects an id that is not a UUID", async () => {
+        const cookies = await session();
+        expect((await app.inject({
+            method: "DELETE",
+            url: "/api/tokens/not-a-uuid",
+            cookies,
+        })).statusCode).toBe(400);
+    });
+});
