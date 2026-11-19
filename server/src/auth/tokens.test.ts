@@ -100,7 +100,7 @@ describe("findApiUser", () => {
         await findApiUser(request(undefined, "abc"));
         const after = condition(apiTokens.createdAt)?.after?.getTime();
         expect(after).toBeGreaterThanOrEqual(before - SESSION_DAYS * 24 * 60 * 60 * 1000 - 1000);
-        expect(after).toBeLessThanOrEqual(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
+        expect(after).toBeLessThanOrEqual(Date.now() - SESSION_DAYS * 24 * 60 * 60 * 1000);
     });
 
     it("prefers a Bearer header over the cookie", async () => {
