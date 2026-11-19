@@ -311,7 +311,37 @@ describe("web session", () => {
         });
         expect(login.statusCode).toBe(401);
         expect(login.cookies).toEqual([]);
-    })
+    });
+
+    it("lists recent plays by newest first", async () => {
+        const login = await app.inject({
+            method: "POST",
+            url: "/api/session",
+            payload: { username: "testuser", password: "testpass" },
+        });
+        const cookies = { cassini_session: login.cookies.find((c) => c.name === "cassini_session")!.value };
+
+        const first = (await app.inject({
+            method: "GET",
+            url: "/api/v1/plays?limit=1",
+            cookies,
+        })).json();
+        expect(first.items).toHaveLength(1);
+        expect(first.next).toBe(first.items[0].playedAt);
+
+        const second = (await app.inject({
+            method: "GET",
+            url: `/api/v1/plays?limit=1&before=${first.next}`,
+            cookies,
+        })).json();
+        expect(second.items).toHaveLength(1);
+        expect(second.items[0].playedAt).toBeLessThan(first.items[0].playedAt);
+        expect(second.nowPlaying).toBeNull();
+        expect((await app.inject({
+            method: "GET",
+            url: "/api/v1/plays",
+        })).statusCode).toBe(401);
+    });
 });
 
 describe("ListenBrainz endpoint", () => {
