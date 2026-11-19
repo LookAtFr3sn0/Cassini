@@ -518,7 +518,7 @@ describe("managing tokens from the web", async () => {
         });
         expect(created.statusCode).toBe(201);
         const { id, token } = created.json();
-        expect(validate(token)).toBe(true);
+        expect(await validate(token)).toBe(true);
 
         const list = (await app.inject({
             method: "GET",
