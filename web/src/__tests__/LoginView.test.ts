@@ -4,14 +4,15 @@ import { createMemoryHistory, createRouter } from "vue-router";
 import { Unauthorized } from "@/api";
 import LoginView from "@/views/LoginView.vue";
 
-const login = vi.hoisted(() => vi.fn());
+const { login, signupOpen } = vi.hoisted(() => ({ login: vi.fn(), signupOpen: vi.fn() }));
 
-vi.mock("@/session", () => ({ login }));
+vi.mock("@/session", () => ({ login, signupOpen }));
 
 const Empty = { template: "<div />" };
 
 const routes = [
     { path: "/login", name: "login", component: LoginView },
+    { path: "/signup", name: "signup", component: Empty },
     { path: "/", name: "recent", component: Empty },
     { path: "/top/:kind", name: "top", component: Empty },
 ];
@@ -36,6 +37,8 @@ async function submit(wrapper: Awaited<ReturnType<typeof render>>["wrapper"], pa
 
 beforeEach(() => {
     login.mockReset();
+    signupOpen.mockReset();
+    signupOpen.mockResolvedValue(false);
 });
 
 describe("LoginView", () => {
