@@ -77,11 +77,11 @@ describe("LoginView", () => {
     });
 
     it("disables the form while loggin in, and clears the old error", async () => {
-        login.mockReturnValueOnce(new Promise((resolve) => (finish = resolve)))
+        login.mockRejectedValueOnce(new Unauthorized());
         const { wrapper } = await render();
         await submit(wrapper, "wrongpass");
 
-        let finish: (value: unknown) => void;
+        let finish!: (value: unknown) => void;
         login.mockReturnValueOnce(new Promise((resolve) => (finish = resolve)));
         await wrapper.find("form").trigger("submit");
         expect(wrapper.find("button").attributes("disabled")).toBeDefined();

@@ -5,7 +5,7 @@ const respond = (status: number, body?: unknown, statusText = "") => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(body === undefined ? null : JSON.stringify(body), { status, statusText })));
 };
 
-const lastCall = () => vi.mocked(fetch).mock.calls[0];
+const lastCall = () => vi.mocked(fetch).mock.calls[0]!;
 
 afterEach(() => {
     vi.unstubAllGlobals();

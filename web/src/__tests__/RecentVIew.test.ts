@@ -8,7 +8,7 @@ const api = vi.hoisted(() => vi.fn());
 vi.mock("@/api", () => ({ api }));
 vi.mock("@/session", () => ({ user: ref({ username: "test", timezone: "Europe/Paris" }) }));
 
-const play = (playedAt: number, track: string, album: string | null) => ({ playedAt, track, artist: "Test Artist", album });
+const play = (playedAt: number, track: string, album: string | null = null) => ({ playedAt, track, artist: "Test Artist", album });
 
 async function render() {
     const wrapper = mount(RecentView);
@@ -30,7 +30,7 @@ describe("RecentView", () => {
     });
 
     it("shows times in the account's timezone", async () => {
-        api.mockResolvedValue({ nowPlaying: null, items: [play(1700000000, "Test Track One", "Test Artist")], next: null });
+        api.mockResolvedValue({ nowPlaying: null, items: [play(1700000000, "Test Track One")], next: null });
         const wrapper = await render();
         const expected = new Date(1700000000 * 1000).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Paris" });
         expect(wrapper.find("time").text()).toBe(expected);
@@ -44,8 +44,8 @@ describe("RecentView", () => {
     });
 
     it("adds the next page under the first one", async () => {
-        api.mockResolvedValueOnce({ nowPlaying: null, items: [play(1700000300, "Test Track One", "Test Artist")], next: 1700000300 });
-        api.mockResolvedValueOnce({ nowPlaying: null, items: [play(1700000000, "Test Track Two", "Test Artist")], next: null });
+        api.mockResolvedValueOnce({ nowPlaying: null, items: [play(1700000300, "Test Track One")], next: 1700000300 });
+        api.mockResolvedValueOnce({ nowPlaying: null, items: [play(1700000000, "Test Track Two")], next: null });
         const wrapper = await render();
         await wrapper.find("button").trigger("click");
         await flushPromises();
