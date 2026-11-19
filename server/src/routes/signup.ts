@@ -18,12 +18,17 @@ const body = {
 
 type SignupBody = { username: string; email: string; password: string };
 
+async function hasUsers() {
+    const [existing] = await db.select({ total: count() }).from(users);
+    return existing!.total > 0;
+}
+
 export async function signupRoutes(app: FastifyInstance) {
+    app.get("/api/signup", async (request, reply) => ({ open: !config.singleUser || !(await hasUsers()) }));
+
     app.post<{ Body: SignupBody }>("/api/signup", { schema: { body } }, async (request, reply) => {
         const { username, email, password } = request.body;
-
-        const [existing] = await db.select({ total: count() }).from(users);
-        const isFirstUser = existing!.total === 0;
+        const isFirstUser = !(await hasUsers());
         
         if (config.singleUser && !isFirstUser) {
             return reply.code(403).send({ error: "Signups are disabled on this instance" });
