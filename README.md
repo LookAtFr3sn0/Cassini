@@ -6,7 +6,8 @@ Fast, modern and customizable dashboard with top artists, albums and tracks, lis
 
 You can use the official hosted instance or run your own.
 
-> ⚠️ Early development\
+> [!Warning]
+> **Early development**.\
 > Features describe what Cassini is being built to do. Expect breaking changes until v1.0
 
 ## Features
@@ -54,27 +55,63 @@ Authenticated with a per user API token
 Each track has `artist`, `title`, `album`, `mbid` when known, a `score` from 0 to 1, and a short `reason`.  An unknown `source` or a `mode` the engine doesn't support is a 400.
 
 ## Self-hosting
-> Installation instructions will be finalized before the first release
+Cassini runs with Docker Compose.  You need git and Docker with the Compose plugin.
 
-Cassini is designed to run with Docker Compose:
+### Quick start
 ```sh
 git clone https://github.com/cassini-fm/Cassini cassini
 cd cassini
-cp .env.example .env # Edit .env with your credentials
-docker compose up -d
+cp .env.example .env
+```
+Open `.env` and set your passwords **before** starting the containers.
+
+```sh
+docker compose up -d --build
+```
+Cassini is now running on port 3000.
+
+1. Open it and create your account.  With `SINGLE_USER=true` (the default), signup closes after the first account.
+2. Open **Tokens** to connect your players:
+   * **Last.fm clients**: set the API URL to `http://<your-server>:3000/2.0/` and log in with your Cassini username and password.
+   * **ListenBrainz clients**: set the server URL to `http://<your-server>:3000` and generate a ListenBrainz token.
+3. To bring in your history, open **Import / Export** and upload a CSV with `played_at`, `artist`, `track`, and, optionally, `album` columns.
+
+> [!Note]
+> At the moment it's only possible to import using a CSV file, more ways are coming soon.
+
+### Updating
+```sh
+git pull
+docker compose up -d --build
 ```
 
-### Key configuration
+Database migrations run automatically when the backend starts.
+
+### HTTPS
+Put Cassini behind a reverse proxy that handles TLS (Caddy, nginx, Traefik) and set `SECURE_COOKIES=true` so the login cookie is only ever sent over HTTPS.
+
+### Backups
+All data lives in PostgreSQL:
+```sh
+docker compose exec db pg_dump -U user name > cassini-backup.sql
+```
+> Replace **user** with your database user and **name** with the database name.
+
+### Configuration
+Set these in `.env`.
 |Variable|Purpose|Default|
 |-|-|-|
-|LASTFM_API_KEY|Needed for Last.fm history import|None|
+|POSTGRES_PASSWORD|Database password. Set it before the first start|`cassini`|
+|POSTGRES_USER|Database user|`cassini`|
+|POSTGRES_DB|Database name|`cassini`|
+|SINGLE_USER|Disables public signup for personal instances|`true`|
+|RECOMMENDER_DB_PASSWORD|Password for the read-only login the recommendation engine uses|`recommender`|
+|RECOMMENDATIONS_ENABLED|Turns recommendations on or off|`true`|
 |RECOMMENDERS|Extra recommendations engines as `name=url`, comma separated.  The built-in open engine is always available as `builtin`|None|
-|RECOMMENDATIONS_CRON|How often the recommendations are regenerated|`daily`|
-|RECOMMENDATIONS_ENABLED|Turns recommendations on or off|`True`|
-|SINGLE_USER|Disables public signup for personal instances|`True`|
+|SECURE_COOKIES|Sends the login cookie over HTTPS only. Only turn on behind a TLS proxy|`false`|
 
 ## Tech stack
-* **Frontend**: TBD
+* **Frontend**: Vue.js, Vite, TypeScript
 * **Backend**: Node, TypeScript, Fastify
 * **Database**: PostgreSQL
 * **Tests**: Vitest
