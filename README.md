@@ -6,7 +6,8 @@ Fast, modern and customizable dashboard with top artists, albums and tracks, lis
 
 You can use the official hosted instance or run your own.
 
-> ⚠️ Early development\
+> [!Warning]
+> **Early development**.\
 > Features describe what Cassini is being built to do. Expect breaking changes until v1.0
 
 ## Features
@@ -33,34 +34,87 @@ You can use the official hosted instance or run your own.
 |Core stats|&check;|&check;|&check;|
 |Advanced stats|&check;|Last 12 months|&check;|
 |Recommendations|Built-in open engine|Cassini Discovery, weekly|Cassini Discovery, daily / on-demand|
+|API rates|Unlimited¹|Low|High|
 |Discovery modes|Basic|Basic|All|
 |Groups & leaderboards|Unlimited|1 group|TBD|
 |Recap|&check;|Monthly and yearly|&check;|
 
-## Self-hosting
-> Installation instructions will be finalized before the first release
+¹ Self-hosted instances have no limit on recommendation API requests, other than the ones the owner sets.
 
-Cassini is designed to run with Docker Compose:
+## Recommendations API
+> Draft, will change before v1.0
+
+Authenticated with a per user API token
+`(Authorization: Bearer <token>)`
+
+|Request|Returns|
+|-|-|
+|`GET /api/v1/recommendations/sources`|The engines this instance offers, with the discovery modes each one supports|
+|`GET /api/v1/recommendations?source=builtin&mode=similar&limit=50`|Recommended tracks from the chosen engine. `source` falls back to the instance default|
+
+Each track has `artist`, `title`, `album`, `mbid` when known, a `score` from 0 to 1, and a short `reason`.  An unknown `source` or a `mode` the engine doesn't support is a 400.
+
+## Self-hosting
+Cassini runs with Docker Compose.  You need git and Docker with the Compose plugin.
+
+### Quick start
 ```sh
-git clone https://github.com/LookAtFr3sn0/Cassini cassini
+git clone https://github.com/cassini-fm/Cassini cassini
 cd cassini
-cp .env.example .env # Edit .env with your credentials
-docker compose up -d
+cp .env.example .env
+```
+Open `.env` and set your passwords **before** starting the containers.
+
+```sh
+docker compose up -d --build
+```
+Cassini is now running on port 3000.
+
+1. Open it and create your account.  With `SINGLE_USER=true` (the default), signup closes after the first account.
+2. Open **Tokens** to connect your players:
+   * **Last.fm clients**: set the API URL to `http://<your-server>:3000/2.0/` and log in with your Cassini username and password.
+   * **ListenBrainz clients**: set the server URL to `http://<your-server>:3000` and generate a ListenBrainz token.
+3. To bring in your history, open **Import / Export** and upload a CSV with `played_at`, `artist`, `track`, and, optionally, `album` columns.
+
+> [!Note]
+> At the moment it's only possible to import using a CSV file, more ways are coming soon.
+
+### Updating
+```sh
+git pull
+docker compose up -d --build
 ```
 
-### Key configuration
+Database migrations run automatically when the backend starts.
+
+### HTTPS
+Put Cassini behind a reverse proxy that handles TLS (Caddy, nginx, Traefik) and set `SECURE_COOKIES=true` so the login cookie is only ever sent over HTTPS.
+
+### Backups
+All data lives in PostgreSQL:
+```sh
+docker compose exec db pg_dump -U user name > cassini-backup.sql
+```
+> Replace **user** with your database user and **name** with the database name.
+
+### Configuration
+Set these in `.env`.
 |Variable|Purpose|Default|
 |-|-|-|
-|SINGLE_USER|Disables public signup for personal instances|`True`|
-|LASTFM_API_KEY|Needed for Last.fm history import|None|
-|RECOMMENDATIONS_ENABLED|Turns recommendations on or off|`True`|
-|RECOMMENDER_URL|Recommendation engine to use.  Empty uses the built-in open engine|None|
-|RECOMMENDATIONS_CRON|How often the recommendations are regenerated|`daily`|
+|POSTGRES_PASSWORD|Database password. Set it before the first start|`cassini`|
+|POSTGRES_USER|Database user|`cassini`|
+|POSTGRES_DB|Database name|`cassini`|
+|SINGLE_USER|Disables public signup for personal instances|`true`|
+|RECOMMENDER_DB_PASSWORD|Password for the read-only login the recommendation engine uses|`recommender`|
+|RECOMMENDATIONS_ENABLED|Turns recommendations on or off|`true`|
+|RECOMMENDERS|Extra recommendations engines as `name=url`, comma separated.  The built-in open engine is always available as `builtin`|None|
+|SECURE_COOKIES|Sends the login cookie over HTTPS only. Only turn on behind a TLS proxy|`false`|
 
 ## Tech stack
-* **Frontend**: TBD
-* **Backend**: TBD
+* **Frontend**: Vue.js, Vite, TypeScript
+* **Backend**: Node, TypeScript, Fastify
 * **Database**: PostgreSQL
+* **Tests**: Vitest
 * **Deployment**: Docker
 
 ## Contributing

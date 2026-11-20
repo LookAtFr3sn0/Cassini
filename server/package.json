@@ -1,0 +1,30 @@
+{
+  "devDependencies": {
+    "@testcontainers/postgresql": "^12.2.1",
+    "@types/node": "^26.6.6",
+    "@types/pg": "^8.23.1",
+    "drizzle-kit": "^0.31.11",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.1.5",
+    "@fastify/formbody": "^9.0.2",
+    "@fastify/static": "^10.1.11",
+    "csv-parse": "^7.0.3",
+    "drizzle-orm": "^0.45.4",
+    "fastify": "^5.12.8",
+    "pg": "^8.23.1",
+    "vitest": "^5.1.0"
+  },
+  "main": "server.ts",
+  "keywords": [],
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file=.env src/server.ts",
+    "test": "vitest run src",
+    "test:integration": "vitest run tests",
+    "test:watch": "vitest"
+  }
+}
