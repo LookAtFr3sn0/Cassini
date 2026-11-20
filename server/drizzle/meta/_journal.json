@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1794691343710,
+      "tag": "0000_tidy_lake",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794988841052,
+      "tag": "0001_engine_views",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794989779344,
+      "tag": "0002_striped_lyja",
+      "breakpoints": true
+    }
+  ]
+}
