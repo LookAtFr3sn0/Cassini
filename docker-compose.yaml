@@ -39,7 +39,17 @@ services:
     ports:
       - "3000:3000"
 
-
+  recommender:
+    image: ghcr.io/cassini-fm/recommender:latest
+    container_name: cassini-recommender
+    environment:
+      DATABASE_URL: postgres://recommender:${RECOMMENDER_DB_PASSWORD:-cassini}@db:5432/${POSTGRES_DB:-cassini}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - db
 
 networks:
   db:
